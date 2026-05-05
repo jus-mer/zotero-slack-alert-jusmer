@@ -1,5 +1,7 @@
-import requests
 import os
+import sys
+
+import requests
 
 GROUP_ID = os.environ["GROUP_ID"]
 ZOTERO_API_KEY = os.environ["ZOTERO_API_KEY"]
@@ -7,6 +9,17 @@ SLACK_WEBHOOK = os.environ["SLACK_WEBHOOK"]
 
 LAST_ITEM_FILE = "last_item.txt"
 headers = {"Zotero-API-Key": ZOTERO_API_KEY} 
+
+
+def print_zotero_403_help():
+    print("Zotero API returned 403 Forbidden.")
+    print("This usually means the API key cannot access this group library.")
+    print("Checklist:")
+    print("- GROUP_ID is correct for the target Zotero group.")
+    print("- ZOTERO_API_KEY is valid and active.")
+    print("- The key has 'Read access to groups' enabled.")
+    print("- The key has 'Read access to items' enabled.")
+    print("- The key owner has membership/access to that Zotero group.")
 
 
 def get_last_saved():
@@ -34,7 +47,7 @@ def format_authors(creators):
 
 def has_pdf(item_key):
     url = f"https://api.zotero.org/groups/{GROUP_ID}/items/{item_key}/children"
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=30)
     if not r.ok:
         return False
 
@@ -81,6 +94,9 @@ def main():
         print(f"Zotero API request failed: {r.status_code}")
         if r.text:
             print(r.text[:500])
+        if r.status_code == 403:
+            print_zotero_403_help()
+            raise SystemExit(1)
         raise
     items = r.json()
 
@@ -139,7 +155,9 @@ def main():
                     f"<{zotero_link}|Open in Zotero>"
         }
 
-        requests.post(SLACK_WEBHOOK, json=message)
+        slack_resp = requests.post(SLACK_WEBHOOK, json=message, timeout=15)
+        if not slack_resp.ok:
+            print(f"Slack webhook failed ({slack_resp.status_code}): {slack_resp.text[:300]}")
         print(f"Posted: {title}")
 
     # Save newest item key
