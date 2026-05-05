@@ -47,12 +47,26 @@ def has_pdf(item_key):
     return False
 
 
+def get_creator_name(meta):
+    created_by = meta.get("createdByUser") or {}
+
+    # Zotero may return different fields depending on API permissions.
+    if created_by.get("name"):
+        return created_by["name"]
+    if created_by.get("username"):
+        return created_by["username"]
+    if created_by.get("id"):
+        return f"User ID {created_by['id']}"
+
+    return "Not available (hidden or missing in API response)"
+
+
 def main():
     last_seen = get_last_saved()
 
     url = (
        f"https://api.zotero.org/groups/{GROUP_ID}/items/top"
-       f"?sort=dateAdded&direction=desc&limit=20&include=data"
+         f"?sort=dateAdded&direction=desc&limit=20&include=data,meta"
     )
 
     r = requests.get(url, headers=headers)
@@ -88,8 +102,7 @@ def main():
 
         authors = format_authors(creators)
 
-        created_by = meta.get("createdByUser", {})
-        creator_name = created_by.get("name", "Unknown user")
+        creator_name = get_creator_name(meta)
 
         zotero_link = f"https://www.zotero.org/groups/{GROUP_ID}/items/{item_key}"
 
