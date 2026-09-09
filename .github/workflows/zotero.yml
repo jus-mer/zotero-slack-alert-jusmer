@@ -27,20 +27,17 @@ jobs:
       - name: Validate required secrets
         env:
           GROUP_ID: ${{ secrets.GROUP_ID }}
-          COLLECTION_KEY: ${{ secrets.COLLECTION_KEY }}
           INCLUDE_SUBCOLLECTIONS: ${{ secrets.INCLUDE_SUBCOLLECTIONS }}
           ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         run: |
           test -n "$GROUP_ID" || (echo "Missing GROUP_ID" && exit 1)
-          test -n "$COLLECTION_KEY" || (echo "Missing COLLECTION_KEY" && exit 1)
           test -n "$ZOTERO_API_KEY" || (echo "Missing ZOTERO_API_KEY" && exit 1)
           test -n "$SLACK_WEBHOOK" || (echo "Missing SLACK_WEBHOOK" && exit 1)
 
       - name: Run script
         env:
           GROUP_ID: ${{ secrets.GROUP_ID }}
-          COLLECTION_KEY: ${{ secrets.COLLECTION_KEY }}
           INCLUDE_SUBCOLLECTIONS: ${{ secrets.INCLUDE_SUBCOLLECTIONS }}
           ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

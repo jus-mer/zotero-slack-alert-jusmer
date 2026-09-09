@@ -32,7 +32,7 @@ COLLECTION_KEY, GROUP_ID_FROM_COLLECTION_URL = normalize_collection_target(COLLE
 ACTIVE_GROUP_ID = GROUP_ID_FROM_COLLECTION_URL or GROUP_ID
 ZOTERO_API_KEY = os.environ["ZOTERO_API_KEY"]
 SLACK_WEBHOOK = os.environ["SLACK_WEBHOOK"]
-INCLUDE_SUBCOLLECTIONS = os.getenv("INCLUDE_SUBCOLLECTIONS", "true").strip().lower() in {
+INCLUDE_SUBCOLLECTIONS = os.getenv("INCLUDE_SUBCOLLECTIONS", "false").strip().lower() in {
     "1",
     "true",
     "yes",

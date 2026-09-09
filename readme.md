@@ -24,9 +24,9 @@ First, get this information:
 
 3. A Slack webhook URL to send notifications to a Slack channel: install the "Incoming Webhooks" app in your Slack workspace. Go to [this link](https://datasoc-workspace.slack.com/marketplace/A0F7XDUAZ-incoming-webhooks), select the appropriate workspace (up right), then green button "Add to Slack", and in the configuration the important is to select the slack channel where to get the alerts and copy the URL of the webhook. This is the **`SLACK_WEBHOOK`**.
 
-4. A Zotero collection key to scope the alert to one collection. Use secret **`COLLECTION_KEY`** (preferred). The script also accepts **`SUBCOLLECTION_KEY`** or **`COLLECTION_ID`** as aliases. This must be the alphanumeric key after `/collections/` in the Zotero URL, not the numeric group ID.
+4. (Optional) A Zotero collection key if you want to scope the alert to one folder instead of the whole group. Use secret **`COLLECTION_KEY`** (preferred). The script also accepts **`SUBCOLLECTION_KEY`** or **`COLLECTION_ID`** as aliases. This must be the alphanumeric key after `/collections/` in the Zotero URL, not the numeric group ID.
 
-5. (Optional) Include subcollections with **`INCLUDE_SUBCOLLECTIONS`**. Use `true` (default), `false`, `1`, `yes`, or `on`.
+5. (Optional) Include subcollections with **`INCLUDE_SUBCOLLECTIONS`**. Use `false` (default), `true`, `1`, `yes`, or `on`.
 
 ## Now the Secrets
 
@@ -34,8 +34,9 @@ Now you just need to set up these pieces of information as "Github Secrets" in t
 
 - go to the repository on GitHub, click on "Settings" (top right), then "Secrets and variables" > "Actions" > new repository secret
 - to set up the `GROUP_ID` secret, enter `GROUP_ID` as the name and paste the group/library ID you found in step 1 as the value in the textbox, then click "Add secret"
-- the same for the other required values, so at the end you should have at least: `GROUP_ID`, `COLLECTION_KEY`, `ZOTERO_API_KEY`, and `SLACK_WEBHOOK`.
-- optional: use `INCLUDE_SUBCOLLECTIONS` with `true` (default) or `false`.
+- the same for the other required values, so at the end you should have at least: `GROUP_ID`, `ZOTERO_API_KEY`, and `SLACK_WEBHOOK`.
+- optional: add `COLLECTION_KEY` if you want to scope alerts to one folder instead of the whole group.
+- optional: use `INCLUDE_SUBCOLLECTIONS` with `false` (default) or `true`.
   
 ![](images/secrets.png)
 
