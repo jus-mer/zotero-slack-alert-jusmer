@@ -146,7 +146,7 @@ def fetch_recent_items():
     params = {
         "sort": "dateAdded",
         "direction": "desc",
-        "limit": 20,
+        "limit": 5,
         "include": "data",
     }
 
