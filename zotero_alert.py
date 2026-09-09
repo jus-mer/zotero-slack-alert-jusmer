@@ -6,6 +6,18 @@ import requests
 GROUP_ID = os.environ["GROUP_ID"]
 ZOTERO_API_KEY = os.environ["ZOTERO_API_KEY"]
 SLACK_WEBHOOK = os.environ["SLACK_WEBHOOK"]
+COLLECTION_KEY = (
+    os.getenv("COLLECTION_KEY")
+    or os.getenv("SUBCOLLECTION_KEY")
+    or os.getenv("COLLECTION_ID")
+    or ""
+).strip()
+INCLUDE_SUBCOLLECTIONS = os.getenv("INCLUDE_SUBCOLLECTIONS", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 LAST_ITEM_FILE = "last_item.txt"
 headers = {"Zotero-API-Key": ZOTERO_API_KEY} 
@@ -22,11 +34,34 @@ def print_zotero_403_help():
     print("- The key owner has membership/access to that Zotero group.")
 
 
+def _handle_zotero_error(response):
+    print(f"Zotero API request failed: {response.status_code}")
+    if response.text:
+        print(response.text[:500])
+    if response.status_code == 403:
+        print_zotero_403_help()
+
+
+def zotero_get(url, params=None, timeout=30, required=True):
+    response = requests.get(url, headers=headers, params=params, timeout=timeout)
+    if response.ok:
+        return response
+
+    if required:
+        _handle_zotero_error(response)
+        raise requests.HTTPError(response=response)
+
+    print(f"Warning: Zotero request failed ({response.status_code}) for {url}")
+    if response.text:
+        print(response.text[:200])
+    return None
+
+
 def get_last_saved():
     try:
         with open(LAST_ITEM_FILE, "r") as f:
             return f.read().strip()
-    except:
+    except OSError:
         return "none"
 
 
@@ -74,31 +109,90 @@ def get_creator_name(meta):
     return "Not available (hidden or missing in API response)"
 
 
-def main():
-    last_seen = get_last_saved()
+def fetch_collection_keys(root_collection_key):
+    keys = []
+    queue = [root_collection_key]
+    seen = set()
 
-    url = f"https://api.zotero.org/groups/{GROUP_ID}/items/top"
+    while queue:
+        current = queue.pop(0)
+        if current in seen:
+            continue
+
+        seen.add(current)
+        keys.append(current)
+
+        if not INCLUDE_SUBCOLLECTIONS:
+            continue
+
+        url = f"https://api.zotero.org/groups/{GROUP_ID}/collections/{current}/collections"
+        response = zotero_get(
+            url,
+            params={"limit": 100, "format": "json"},
+            required=False,
+        )
+        if response is None:
+            continue
+
+        for collection in response.json():
+            key = collection.get("key")
+            if key and key not in seen:
+                queue.append(key)
+
+    return keys
+
+
+def fetch_recent_items():
     params = {
         "sort": "dateAdded",
         "direction": "desc",
         "limit": 20,
-        # Zotero format=json supports include values like data/bib/citation.
-        # "meta" is not a valid include value and causes HTTP 400.
         "include": "data",
     }
 
-    r = requests.get(url, headers=headers, params=params, timeout=30)
+    if not COLLECTION_KEY:
+        url = f"https://api.zotero.org/groups/{GROUP_ID}/items/top"
+        response = zotero_get(url, params=params)
+        return response.json()
+
+    collection_keys = fetch_collection_keys(COLLECTION_KEY)
+    if not collection_keys:
+        print("No collection keys resolved. Check COLLECTION_KEY / SUBCOLLECTION_KEY.")
+        return []
+
+    all_items = []
+    for collection_key in collection_keys:
+        url = f"https://api.zotero.org/groups/{GROUP_ID}/collections/{collection_key}/items/top"
+        response = zotero_get(url, params=params, required=False)
+        if response is None:
+            continue
+        all_items.extend(response.json())
+
+    deduped = {}
+    for item in all_items:
+        key = item.get("key")
+        if key:
+            deduped[key] = item
+
+    items = list(deduped.values())
+    items.sort(key=lambda item: item.get("data", {}).get("dateAdded", ""), reverse=True)
+
+    return items
+
+
+def main():
+    last_seen = get_last_saved()
+
+    if COLLECTION_KEY:
+        mode = "including subcollections" if INCLUDE_SUBCOLLECTIONS else "without subcollections"
+        print(f"Collection mode enabled for key '{COLLECTION_KEY}' ({mode}).")
+    else:
+        print("Group-wide mode enabled (all top-level items in the group library).")
+
     try:
-        r.raise_for_status()
+        items = fetch_recent_items()
     except requests.HTTPError:
-        print(f"Zotero API request failed: {r.status_code}")
-        if r.text:
-            print(r.text[:500])
-        if r.status_code == 403:
-            print_zotero_403_help()
-            raise SystemExit(1)
-        raise
-    items = r.json()
+        raise SystemExit(1)
 
     if not items:
         print("No items found.")

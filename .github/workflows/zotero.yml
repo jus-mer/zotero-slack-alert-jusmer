@@ -29,6 +29,10 @@ jobs:
           GROUP_ID: ${{ secrets.GROUP_ID }}
           ZOTERO_API_KEY: ${{ secrets.ZOTERO_API_KEY }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          COLLECTION_KEY: ${{ secrets.COLLECTION_KEY }}
+          SUBCOLLECTION_KEY: ${{ secrets.SUBCOLLECTION_KEY }}
+          COLLECTION_ID: ${{ secrets.COLLECTION_ID }}
+          INCLUDE_SUBCOLLECTIONS: ${{ secrets.INCLUDE_SUBCOLLECTIONS }}
         run: python zotero_alert.py
 
       - name: Commit updated state
